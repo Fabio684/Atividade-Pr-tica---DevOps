@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Favorites Hub | Plataforma de Favoritos</title>
+    <meta name="description" content="Favorites Hub - plataforma para gerenciar clientes, favoritos e compras." />
+    <link rel="icon" type="image/png" href="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" />
+    <link rel="apple-touch-icon" href="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Favorites Hub" />
+    <meta property="og:description" content="Plataforma de favoritos, clientes e compras." />
+    <meta property="og:image" content="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Favorites Hub" />
+    <meta name="twitter:description" content="Plataforma de favoritos, clientes e compras." />
+    <meta name="twitter:image" content="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <section id="authView" class="auth-view">
+      <div class="auth-card">
+        <div class="auth-brand" style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+          <img src="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" alt="Logo Favorites Hub" class="site-logo" style="width: 200px; height: 200px; object-fit: contain; margin-bottom: 2px;" />
+          <span style="font-size: 2rem;">Favorites Hub</span>
+        </div>
+        <h1>Acesse sua conta</h1>
+        <p class="auth-subtitle">Entre para gerenciar clientes e favoritos.</p>
+
+        <div class="auth-switch" role="tablist" aria-label="Alternar entre login e cadastro">
+          <button id="showLogin" type="button" class="tab-btn active" aria-selected="true">Login</button>
+          <button id="showRegister" type="button" class="tab-btn" aria-selected="false">Criar conta</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <label>
+            E-mail
+            <input id="loginEmail" type="email" placeholder="admin@empresa.com" required />
+          </label>
+          <label>
+            Senha
+            <input id="loginPassword" type="password" placeholder="Digite sua senha" minlength="4" required />
+          </label>
+          <div class="terms-row">
+            <label class="terms-check">
+              <input id="loginTermsAccepted" type="checkbox" />
+              Termo de responsabilidade lido
+            </label>
+            <button id="openTermsBtn" type="button" class="ghost-btn">Ler termo</button>
+          </div>
+          <button type="submit">Entrar</button>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden">
+          <label>
+            Nome
+            <input id="registerName" type="text" placeholder="Seu nome" required />
+          </label>
+          <label>
+            E-mail
+            <input id="registerEmail" type="email" placeholder="voce@empresa.com" required />
+          </label>
+          <label>
+            Senha
+            <input id="registerPassword" type="password" placeholder="Crie uma senha" minlength="4" required />
+          </label>
+          <button type="submit">Criar conta</button>
+        </form>
+
+        <p id="authMessage" class="message auth-message"></p>
+      </div>
+    </section>
+
+    <main id="appView" class="layout hidden" style="min-height: 60vh;">
+      <aside class="sidebar panel-surface">
+        <div>
+          <div class="brand" style="display: flex; align-items: center; gap: 12px;">
+            <img src="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" alt="Logo Favorites Hub" class="site-logo" style="width: 90px; height: 90px; object-fit: contain;" />
+            <span style="font-size: 1.3rem;">Favorites Hub</span>
+          </div>
+        </div>
+
+        <section class="sidebar-user">
+          <h2>Perfil do usuario</h2>
+          <p id="sidebarUserName" class="sidebar-user-name">-</p>
+          <p id="sidebarUserEmail" class="muted">-</p>
+        </section>
+
+        <section class="sidebar-cart">
+          <div class="sidebar-cart-head">
+            <button id="openCartPageBtn" class="cart-page-btn" title="Abrir carrinho">
+              <span class="cart-icon" aria-hidden="true">&#128722;</span> Carrinho
+              <span id="sidebarFavoriteCount" class="cart-badge">0</span>
+            </button>
+          </div>
+          <ul id="sidebarFavoriteList" class="cart-list">
+            <li class="muted">Nenhum produto favoritado.</li>
+          </ul>
+        </section>
+
+        <section class="stack-section hidden" aria-hidden="true">
+          <h2>Configuracao da API</h2>
+          <label>
+            URL Base
+            <input id="apiBase" type="text" value="http://localhost:3000" />
+          </label>
+          <button id="saveApiBase" type="button">Salvar URL</button>
+        </section>
+
+      </aside>
+
+      <section class="content">
+        <header class="topbar panel-surface">
+          <div style="display: flex; align-items: center; gap: 18px;">
+            <img src="public/img/Gemini_Generated_Image_70988h70988h7098-removebg-preview.png" alt="Logo Favorites Hub" class="site-logo" style="width: 110px; height: 110px; object-fit: contain;" />
+            <h1 style="font-size: 2rem;">Dashboard de Clientes e Favoritos</h1>
+          </div>
+          <div class="topbar-actions">
+            <span id="sessionUser" class="user-chip"></span>
+            <button id="openAdminPageBtn" type="button" class="ghost-btn hidden" title="Configuração de administrador">⚙</button>
+            <button id="logoutButton" type="button" class="ghost-btn">Sair</button>
+          </div>
+        </header>
+
+        <section class="panel-surface">
+          <h2>Filtros de Produtos</h2>
+          <div class="catalog-filters">
+            <label>
+              Pesquisar produto
+              <input id="itemSearch" type="text" placeholder="Digite o nome do produto" />
+            </label>
+            <label>
+              Categoria
+              <select id="itemCategory">
+                <option value="">Todas as categorias</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+
+        <section class="panel-surface" id="catalogSection">
+          <h2>Catálogo de Produtos</h2>
+          <div id="catalogContainer" class="catalog-grid"></div>
+        </section>
+
+        <!-- Página do Carrinho -->
+        <section class="panel-surface hidden" id="cartPageSection">
+          <h2>Seu Carrinho</h2>
+          <button id="closeCartPageBtn" class="close-cart-btn">Voltar</button>
+          <ul id="cartPageList" class="cart-list"></ul>
+        </section>
+
+        <section class="panel-surface hidden" id="paymentPageSection">
+          <h2>Pagamento via PIX</h2>
+          <p id="paymentProductText" class="muted">Produto: -</p>
+          <p class="muted">Destino Nubank: 88 9 8819-1225</p>
+          <div class="payment-box">
+            <img id="paymentQrImage" alt="QR Code PIX" />
+            <div class="payment-details">
+              <label>
+                Chave aleatoria
+                <input id="paymentPixKey" type="text" readonly />
+              </label>
+              <button id="copyPixKeyBtn" type="button" class="ghost-btn">Copiar chave</button>
+              <button id="closePaymentPageBtn" type="button">Voltar</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-surface hidden" id="adminPageSection">
+          <div class="admin-head">
+            <h2>Painel de Configuração</h2>
+            <button id="closeAdminPageBtn" type="button" class="ghost-btn">Voltar</button>
+          </div>
+
+          <div class="admin-block">
+            <h3>Usuários</h3>
+            <div id="adminUsersList" class="admin-list"></div>
+          </div>
+
+          <div class="admin-block">
+            <h3>Produtos</h3>
+            <div id="adminProductsList" class="admin-list"></div>
+          </div>
+        </section>
+
+        <section class="panel-surface hidden" aria-hidden="true">
+          <div id="clientsContainer" class="cards"></div>
+        </section>
+
+        <p id="message" class="message"></p>
+        <div id="globalError" class="message" style="display:none;color:#c1121f;font-size:1.1rem;"></div>
+      </section>
+    </main>
+
+    <div id="editModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-card">
+        <h2 id="editTitle">Editar Cliente</h2>
+        <form id="editClientForm" class="stack-form">
+          <input id="editClientId" type="hidden" />
+          <label>
+            Nome
+            <input id="editName" type="text" required />
+          </label>
+          <label>
+            E-mail
+            <input id="editEmail" type="email" required />
+          </label>
+          <div class="modal-actions">
+            <button id="cancelEdit" type="button" class="ghost-btn">Cancelar</button>
+            <button type="submit">Salvar alteracoes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="termsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+      <div class="modal-card">
+        <h2 id="termsTitle">Termo de Responsabilidade</h2>
+        <div class="terms-content">
+          <p>Ao acessar esta plataforma, você concorda em utilizar o sistema de forma ética e responsável.</p>
+          <p>Você é responsável pelas ações realizadas com sua conta, incluindo alterações de dados e operações de compra.</p>
+          <p>O uso indevido, tentativa de fraude ou manipulação maliciosa de informações poderá resultar em bloqueio de acesso.</p>
+        </div>
+        <div class="modal-actions">
+          <button id="closeTermsBtn" type="button" class="ghost-btn">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>Estou cansado chefe</footer>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="app.js?v=20260520e"></script>
+  </body>
+</html>

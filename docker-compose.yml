@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: favorites-backend
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CORS_ORIGIN=http://localhost:8080
+      - FIREBASE_DATABASE_URL=
+      - FIREBASE_SERVICE_ACCOUNT_JSON=
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: favorites-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

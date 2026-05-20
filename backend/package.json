@@ -1,0 +1,25 @@
+{
+  "name": "favorites-api-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/node-server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/node-server.js",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "deploy:worker": "wrangler deploy"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "dotenv": "^17.4.2",
+    "firebase-admin": "^12.7.0",
+    "hono": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "wrangler": "^3.114.0"
+  }
+}

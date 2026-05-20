@@ -1,0 +1,6 @@
+name = "favorites-api"
+main = "src/worker.ts"
+compatibility_date = "2026-05-20"
+
+[vars]
+CORS_ORIGIN = "*"
