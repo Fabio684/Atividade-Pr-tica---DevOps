@@ -35,16 +35,57 @@ export class FirebaseRepository implements ClientRepository {
   private readonly db = getDatabase(getFirebaseApp());
   private readonly clientsNode = "clients";
   private readonly legacyClientsNode = "atletas";
+  private readonly migrationPromise: Promise<void>;
+
+  constructor() {
+    this.migrationPromise = this.migrateLegacyClients();
+  }
 
   private clientPath(id?: string): string {
     return id ? `${this.clientsNode}/${id}` : this.clientsNode;
   }
 
-  private legacyClientPath(id?: string): string {
-    return id ? `${this.legacyClientsNode}/${id}` : this.legacyClientsNode;
+  private async ensureMigration(): Promise<void> {
+    await this.migrationPromise;
+  }
+
+  private async migrateLegacyClients(): Promise<void> {
+    const [clientsSnapshot, legacySnapshot] = await Promise.all([
+      this.db.ref(this.clientPath()).get(),
+      this.db.ref(this.legacyClientsNode).get(),
+    ]);
+
+    const clientsRaw = (clientsSnapshot.val() ?? {}) as Record<string, Client>;
+    const legacyRaw = (legacySnapshot.val() ?? {}) as Record<string, Client>;
+
+    if (Object.keys(legacyRaw).length === 0) {
+      return;
+    }
+
+    const updates: Record<string, Client> = {};
+    for (const [legacyKey, legacyClient] of Object.entries(legacyRaw)) {
+      const normalizedId = legacyClient?.id || legacyKey;
+      if (clientsRaw[normalizedId]) {
+        continue;
+      }
+
+      updates[normalizedId] = {
+        ...legacyClient,
+        id: normalizedId,
+        email: String(legacyClient.email || "").toLowerCase(),
+      };
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.db.ref(this.clientPath()).update(updates);
+    }
+
+    await this.db.ref(this.legacyClientsNode).remove();
   }
 
   async createClient(input: { name: string; email: string }): Promise<Client> {
+    await this.ensureMigration();
+
     const now = new Date().toISOString();
     const client: Client = {
       id: randomUUID(),
@@ -54,49 +95,36 @@ export class FirebaseRepository implements ClientRepository {
       updatedAt: now,
     };
 
-    await Promise.all([
-      this.db.ref(this.clientPath(client.id)).set(client),
-      this.db.ref(this.legacyClientPath(client.id)).set(client),
-    ]);
+    await this.db.ref(this.clientPath(client.id)).set(client);
     return client;
   }
 
   async listClients(): Promise<Client[]> {
-    const [clientsSnapshot, legacySnapshot] = await Promise.all([
-      this.db.ref(this.clientPath()).get(),
-      this.db.ref(this.legacyClientPath()).get(),
-    ]);
+    await this.ensureMigration();
 
-    const clientsRaw = (clientsSnapshot.val() ?? {}) as Record<string, Client>;
-    const legacyRaw = (legacySnapshot.val() ?? {}) as Record<string, Client>;
-
-    const merged = new Map<string, Client>();
-    for (const client of Object.values(legacyRaw)) {
-      merged.set(client.id, client);
-    }
-    for (const client of Object.values(clientsRaw)) {
-      merged.set(client.id, client);
-    }
-
-    return Array.from(merged.values());
+    const snapshot = await this.db.ref(this.clientPath()).get();
+    const raw = (snapshot.val() ?? {}) as Record<string, Client>;
+    return Object.values(raw);
   }
 
   async getClientById(id: string): Promise<Client | null> {
-    const [clientSnapshot, legacySnapshot] = await Promise.all([
-      this.db.ref(this.clientPath(id)).get(),
-      this.db.ref(this.legacyClientPath(id)).get(),
-    ]);
+    await this.ensureMigration();
 
-    return (clientSnapshot.val() as Client | null) ?? (legacySnapshot.val() as Client | null) ?? null;
+    const snapshot = await this.db.ref(this.clientPath(id)).get();
+    return (snapshot.val() as Client | null) ?? null;
   }
 
   async getClientByEmail(email: string): Promise<Client | null> {
+    await this.ensureMigration();
+
     const normalizedEmail = email.toLowerCase();
     const clients = await this.listClients();
     return clients.find((client) => client.email === normalizedEmail) ?? null;
   }
 
   async updateClient(id: string, input: { name: string; email: string }): Promise<Client | null> {
+    await this.ensureMigration();
+
     const existing = await this.getClientById(id);
     if (!existing) {
       return null;
@@ -109,14 +137,13 @@ export class FirebaseRepository implements ClientRepository {
       updatedAt: new Date().toISOString(),
     };
 
-    await Promise.all([
-      this.db.ref(this.clientPath(id)).set(updated),
-      this.db.ref(this.legacyClientPath(id)).set(updated),
-    ]);
+    await this.db.ref(this.clientPath(id)).set(updated);
     return updated;
   }
 
   async deleteClient(id: string): Promise<boolean> {
+    await this.ensureMigration();
+
     const existing = await this.getClientById(id);
     if (!existing) {
       return false;
@@ -124,7 +151,6 @@ export class FirebaseRepository implements ClientRepository {
 
     await Promise.all([
       this.db.ref(this.clientPath(id)).remove(),
-      this.db.ref(this.legacyClientPath(id)).remove(),
       this.db.ref(`favorites/${id}`).remove(),
     ]);
     return true;
