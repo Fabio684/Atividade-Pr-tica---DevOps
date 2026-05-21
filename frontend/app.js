@@ -199,6 +199,7 @@ function addToFavorites(product) {
   saveCart();
   renderSidebarFavorites();
   renderCatalog();
+  void syncFavoriteToBackend(product.id);
 }
 
 function removeFromFavorites(productId) {
@@ -206,6 +207,7 @@ function removeFromFavorites(productId) {
   saveCart();
   renderSidebarFavorites();
   renderCatalog();
+  void syncFavoriteRemovalToBackend(productId);
 }
 
 function generateRandomPixKey() {
@@ -307,16 +309,13 @@ async function showPaymentPage(product, source = "catalog") {
 
   // --- Registrar compra no backend ---
   try {
-    const sessionEmail = localStorage.getItem("favorites_ui_session");
-    if (!sessionEmail) return;
-    // Buscar cliente pelo e-mail
-    const clientsRes = await fetch(`${apiBase}/api/clients`);
-    const clients = await clientsRes.json();
-    const client = clients.find((c) => c.email === sessionEmail);
-    if (!client) return;
-    await fetch(`${apiBase}/api/clients/${client.id}/purchases`, {
+    const clientId = await resolveSessionClientId();
+    if (!clientId) {
+      return;
+    }
+
+    await request(`/api/clients/${clientId}/purchases`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         productId: product.id,
         productTitle: product.title,
@@ -324,7 +323,6 @@ async function showPaymentPage(product, source = "catalog") {
         productImage: product.image,
       }),
     });
-    // Opcional: mostrar mensagem de sucesso
     showMessage("Compra registrada com sucesso!");
   } catch (e) {
     showMessage("Não foi possível registrar a compra no backend.", true);
@@ -420,6 +418,12 @@ let apiBase = localStorage.getItem(apiStorageKey) || "http://localhost:3000";
 let favoriteCountMap = new Map();
 let favoritePreviewMap = new Map();
 let firebaseAuth = null;
+let sessionClientCache = { email: null, id: null };
+let clientsRefreshTimer = null;
+let isLoadingClients = false;
+let hasPendingClientsLoad = false;
+
+const CLIENTS_REFRESH_INTERVAL_MS = 7000;
 
 const firebaseConfig = {
   apiKey: "AIzaSyDs7ChLl5aNbZBxHuF0z5YTEAWJ_Tn-cvw",
@@ -675,16 +679,20 @@ function updateSidebarProfile(email) {
 
 function setSession(email, isAdmin = false) {
   localStorage.setItem(sessionStorageKey, email);
+  sessionClientCache = { email: null, id: null };
   setAdminAccess(isAdmin);
   sessionUser.textContent = email;
   updateSidebarProfile(email);
   authView.classList.add("hidden");
   appView.classList.remove("hidden");
   showGlobalError("");
+  startClientsAutoRefresh();
 }
 
 function clearSession() {
   localStorage.removeItem(sessionStorageKey);
+  sessionClientCache = { email: null, id: null };
+  stopClientsAutoRefresh();
   setAdminAccess(false);
   favoriteCountMap = new Map();
   favoritePreviewMap = new Map();
@@ -694,6 +702,29 @@ function clearSession() {
   authView.classList.remove("hidden");
   showMessage("");
   showGlobalError("");
+}
+
+function stopClientsAutoRefresh() {
+  if (clientsRefreshTimer) {
+    window.clearInterval(clientsRefreshTimer);
+    clientsRefreshTimer = null;
+  }
+}
+
+function shouldAutoRefreshClients() {
+  return Boolean(localStorage.getItem(sessionStorageKey)) && !document.hidden;
+}
+
+function startClientsAutoRefresh() {
+  stopClientsAutoRefresh();
+
+  if (!shouldAutoRefreshClients()) {
+    return;
+  }
+
+  clientsRefreshTimer = window.setInterval(() => {
+    void loadClients({ silent: true });
+  }, CLIENTS_REFRESH_INTERVAL_MS);
 }
 
 function syncStats(clientCount) {
@@ -726,6 +757,94 @@ async function request(path, options = {}) {
   }
 
   return data;
+}
+
+function buildSessionClientName(sessionEmail) {
+  const firebaseName = firebaseAuth?.currentUser?.displayName?.trim();
+  if (firebaseName) {
+    return firebaseName;
+  }
+
+  const localUser = findUserByEmail(sessionEmail);
+  if (localUser?.name?.trim()) {
+    return localUser.name.trim();
+  }
+
+  return (sessionEmail.split("@")[0] || "Usuario").trim();
+}
+
+async function resolveSessionClientId() {
+  const sessionEmail = localStorage.getItem(sessionStorageKey);
+  if (!sessionEmail) {
+    return null;
+  }
+
+  if (sessionClientCache.email === sessionEmail && sessionClientCache.id) {
+    return sessionClientCache.id;
+  }
+
+  const clients = await request("/api/clients");
+  let client = clients.find((item) => item.email === sessionEmail);
+
+  if (!client) {
+    const fallbackName = buildSessionClientName(sessionEmail);
+
+    try {
+      client = await request("/api/clients", {
+        method: "POST",
+        body: JSON.stringify({
+          name: fallbackName,
+          email: sessionEmail,
+        }),
+      });
+    } catch (error) {
+      // Caso outro fluxo tenha criado ao mesmo tempo, tenta buscar novamente.
+      const message = String(error?.message || "").toLowerCase();
+      if (message.includes("ja cadastrado")) {
+        const refreshed = await request("/api/clients");
+        client = refreshed.find((item) => item.email === sessionEmail);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!client) {
+    sessionClientCache = { email: sessionEmail, id: null };
+    return null;
+  }
+
+  sessionClientCache = { email: sessionEmail, id: client.id };
+  return client.id;
+}
+
+async function syncFavoriteToBackend(productId) {
+  try {
+    const clientId = await resolveSessionClientId();
+    if (!clientId) {
+      return;
+    }
+
+    await request(`/api/clients/${clientId}/favorites`, {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    });
+  } catch (_error) {
+    // Mantem UX local mesmo se backend estiver indisponivel.
+  }
+}
+
+async function syncFavoriteRemovalToBackend(productId) {
+  try {
+    const clientId = await resolveSessionClientId();
+    if (!clientId) {
+      return;
+    }
+
+    await request(`/api/clients/${clientId}/favorites/${productId}`, { method: "DELETE" });
+  } catch (_error) {
+    // Mantem UX local mesmo se backend estiver indisponivel.
+  }
 }
 
 function favoriteItemTemplate(clientId, favorite) {
@@ -808,11 +927,21 @@ async function loadFavorites(clientId) {
   }
 }
 
-async function loadClients() {
-  favoriteCountMap = new Map();
-  favoritePreviewMap = new Map();
-  renderSidebarFavorites();
-  clientsContainer.innerHTML = "<span>Carregando clientes...</span>";
+async function loadClients(options = {}) {
+  const silent = Boolean(options.silent);
+
+  if (isLoadingClients) {
+    hasPendingClientsLoad = true;
+    return;
+  }
+
+  isLoadingClients = true;
+  if (!silent) {
+    favoriteCountMap = new Map();
+    favoritePreviewMap = new Map();
+    renderSidebarFavorites();
+    clientsContainer.innerHTML = "<span>Carregando clientes...</span>";
+  }
   showGlobalError("");
   try {
     const clients = await request("/api/clients");
@@ -826,12 +955,32 @@ async function loadClients() {
     await Promise.all(clients.map((client) => loadFavorites(client.id)));
     syncStats(clients.length);
   } catch (error) {
-    showGlobalError("Não foi possível conectar à API. Verifique a URL e tente novamente.");
-    clientsContainer.innerHTML = "<span style='color:#c1121f'>API indisponível no momento. Ajuste a URL Base e tente novamente.</span>";
-    renderCatalog();
-    syncStats(0);
+    if (!silent) {
+      showGlobalError("Não foi possível conectar à API. Verifique a URL e tente novamente.");
+      clientsContainer.innerHTML = "<span style='color:#c1121f'>API indisponível no momento. Ajuste a URL Base e tente novamente.</span>";
+      renderCatalog();
+      syncStats(0);
+    }
+  } finally {
+    isLoadingClients = false;
+    if (hasPendingClientsLoad) {
+      hasPendingClientsLoad = false;
+      void loadClients({ silent });
+    }
   }
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stopClientsAutoRefresh();
+    return;
+  }
+
+  if (localStorage.getItem(sessionStorageKey)) {
+    startClientsAutoRefresh();
+    void loadClients();
+  }
+});
 // Inicialização do catálogo ao abrir o app
 fetchCatalogProducts();
 
@@ -1140,6 +1289,10 @@ clientsContainer.addEventListener("click", async (event) => {
 
     if (action === "add-favorite") {
       const input = document.querySelector(`[data-favorite-input="${clientId}"]`);
+      if (!input) {
+        showMessage("Tente novamente em alguns segundos.", true);
+        return;
+      }
       const productId = Number(input.value);
 
       await request(`/api/clients/${clientId}/favorites`, {

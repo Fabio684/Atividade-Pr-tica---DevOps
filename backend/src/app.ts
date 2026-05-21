@@ -5,7 +5,12 @@ import { fetchProductById } from "./fakeStore.js";
 
 function resolveCorsOrigin() {
   if (typeof process !== "undefined" && process.env?.CORS_ORIGIN) {
-    return process.env.CORS_ORIGIN;
+    const configured = process.env.CORS_ORIGIN.trim();
+    return Array.from(new Set([
+      configured,
+      "http://localhost:8080",
+      "http://127.0.0.1:8080",
+    ]));
   }
 
   return "*";

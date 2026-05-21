@@ -33,6 +33,16 @@ function getFirebaseApp() {
 
 export class FirebaseRepository implements ClientRepository {
   private readonly db = getDatabase(getFirebaseApp());
+  private readonly clientsNode = "clients";
+  private readonly legacyClientsNode = "atletas";
+
+  private clientPath(id?: string): string {
+    return id ? `${this.clientsNode}/${id}` : this.clientsNode;
+  }
+
+  private legacyClientPath(id?: string): string {
+    return id ? `${this.legacyClientsNode}/${id}` : this.legacyClientsNode;
+  }
 
   async createClient(input: { name: string; email: string }): Promise<Client> {
     const now = new Date().toISOString();
@@ -44,19 +54,40 @@ export class FirebaseRepository implements ClientRepository {
       updatedAt: now,
     };
 
-    await this.db.ref(`clients/${client.id}`).set(client);
+    await Promise.all([
+      this.db.ref(this.clientPath(client.id)).set(client),
+      this.db.ref(this.legacyClientPath(client.id)).set(client),
+    ]);
     return client;
   }
 
   async listClients(): Promise<Client[]> {
-    const snapshot = await this.db.ref("clients").get();
-    const raw = (snapshot.val() ?? {}) as Record<string, Client>;
-    return Object.values(raw);
+    const [clientsSnapshot, legacySnapshot] = await Promise.all([
+      this.db.ref(this.clientPath()).get(),
+      this.db.ref(this.legacyClientPath()).get(),
+    ]);
+
+    const clientsRaw = (clientsSnapshot.val() ?? {}) as Record<string, Client>;
+    const legacyRaw = (legacySnapshot.val() ?? {}) as Record<string, Client>;
+
+    const merged = new Map<string, Client>();
+    for (const client of Object.values(legacyRaw)) {
+      merged.set(client.id, client);
+    }
+    for (const client of Object.values(clientsRaw)) {
+      merged.set(client.id, client);
+    }
+
+    return Array.from(merged.values());
   }
 
   async getClientById(id: string): Promise<Client | null> {
-    const snapshot = await this.db.ref(`clients/${id}`).get();
-    return (snapshot.val() as Client | null) ?? null;
+    const [clientSnapshot, legacySnapshot] = await Promise.all([
+      this.db.ref(this.clientPath(id)).get(),
+      this.db.ref(this.legacyClientPath(id)).get(),
+    ]);
+
+    return (clientSnapshot.val() as Client | null) ?? (legacySnapshot.val() as Client | null) ?? null;
   }
 
   async getClientByEmail(email: string): Promise<Client | null> {
@@ -78,7 +109,10 @@ export class FirebaseRepository implements ClientRepository {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.db.ref(`clients/${id}`).set(updated);
+    await Promise.all([
+      this.db.ref(this.clientPath(id)).set(updated),
+      this.db.ref(this.legacyClientPath(id)).set(updated),
+    ]);
     return updated;
   }
 
@@ -89,7 +123,8 @@ export class FirebaseRepository implements ClientRepository {
     }
 
     await Promise.all([
-      this.db.ref(`clients/${id}`).remove(),
+      this.db.ref(this.clientPath(id)).remove(),
+      this.db.ref(this.legacyClientPath(id)).remove(),
       this.db.ref(`favorites/${id}`).remove(),
     ]);
     return true;
