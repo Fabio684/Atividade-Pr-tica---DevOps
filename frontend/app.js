@@ -1043,15 +1043,19 @@ registerForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (findUserByEmail(email)) {
+  const localExistingUser = findUserByEmail(email);
+
+  const remoteUsers = await getRemoteUsers();
+  const emailAlreadyExistsRemote = remoteUsers.some((user) => user.email === email);
+  if (emailAlreadyExistsRemote) {
     showMessage("Ja existe uma conta com esse e-mail.", true);
     return;
   }
 
-  const remoteUsers = await getRemoteUsers();
-  if (remoteUsers.some((user) => user.email === email)) {
-    showMessage("Ja existe uma conta com esse e-mail.", true);
-    return;
+  // Limpa registro local antigo para evitar bloqueio falso ao trocar de origem/porta.
+  if (localExistingUser) {
+    const cleanedUsers = getUsers().filter((user) => user.email !== email);
+    saveUsers(cleanedUsers);
   }
 
   let backendClientCreated = false;
@@ -1094,7 +1098,7 @@ registerForm.addEventListener("submit", async (event) => {
     }
   }
 
-  const users = getUsers();
+  const users = getUsers().filter((user) => user.email !== email);
   users.push({ name, email, password });
   saveUsers(users);
   registerForm.reset();
