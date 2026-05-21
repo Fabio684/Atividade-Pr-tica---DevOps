@@ -414,7 +414,11 @@ const productOverridesKey = "favorites_ui_product_overrides";
 const ADMIN_EMAIL = "leonfabio161@gmail.com";
 const ADMIN_PASSWORD = "leon123";
 
-let apiBase = localStorage.getItem(apiStorageKey) || "http://localhost:3000";
+const isLocalRuntime = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const canUseLocalFallback = isLocalRuntime;
+const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : "";
+
+let apiBase = localStorage.getItem(apiStorageKey) || defaultApiBase;
 let favoriteCountMap = new Map();
 let favoritePreviewMap = new Map();
 let firebaseAuth = null;
@@ -450,6 +454,7 @@ const closeTermsBtn = document.getElementById("closeTermsBtn");
 
 const apiInput = document.getElementById("apiBase");
 const saveApiBaseButton = document.getElementById("saveApiBase");
+const apiConfigSection = document.querySelector(".stack-section");
 const clientsContainer = document.getElementById("clientsContainer");
 const message = document.getElementById("message");
 const authMessage = document.getElementById("authMessage");
@@ -469,6 +474,11 @@ const editName = document.getElementById("editName");
 const editEmail = document.getElementById("editEmail");
 
 apiInput.value = apiBase;
+
+if (apiConfigSection && !isLocalRuntime) {
+  apiConfigSection.classList.remove("hidden");
+  apiConfigSection.setAttribute("aria-hidden", "false");
+}
 
 function initFirebaseAuth() {
   if (!window.firebase) {
@@ -738,6 +748,10 @@ function syncStats(clientCount) {
 }
 
 async function request(path, options = {}) {
+  if (!apiBase) {
+    throw new Error("Configure a URL da API para salvar no banco de dados.");
+  }
+
   const response = await fetch(`${apiBase}${path}`, {
     headers: {
       "Content-Type": "application/json",
@@ -1071,6 +1085,11 @@ registerForm.addEventListener("submit", async (event) => {
     // ignora erro, segue fluxo local
   }
 
+  if (!backendClientCreated && !canUseLocalFallback) {
+    showMessage("Nao foi possivel salvar no banco. Configure a URL da API e tente novamente.", true);
+    return;
+  }
+
   if (firebaseAuth) {
     try {
       const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
@@ -1096,6 +1115,11 @@ registerForm.addEventListener("submit", async (event) => {
       }
       // Fallback local para ambiente de desenvolvimento quando Firebase nao estiver disponivel
     }
+  }
+
+  if (!canUseLocalFallback) {
+    showMessage("Cadastro local desativado em producao. Configure a URL da API.", true);
+    return;
   }
 
   const users = getUsers().filter((user) => user.email !== email);
