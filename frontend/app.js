@@ -88,7 +88,13 @@ function renderCatalog() {
 }
 
 function saveCart() {
-  localStorage.setItem(cartStorageKey, JSON.stringify(cartItems));
+  const sessionEmail = localStorage.getItem(sessionStorageKey) || "guest";
+  localStorage.setItem(`${cartStorageKey}_${sessionEmail}`, JSON.stringify(cartItems));
+}
+
+function loadCartForSession() {
+  const sessionEmail = localStorage.getItem(sessionStorageKey) || "guest";
+  cartItems = JSON.parse(localStorage.getItem(`${cartStorageKey}_${sessionEmail}`) || "[]");
 }
 
 function renderSidebarFavorites() {
@@ -415,7 +421,6 @@ const ADMIN_EMAIL = "leonfabio161@gmail.com";
 const ADMIN_PASSWORD = "leon123";
 
 const isLocalRuntime = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const canUseLocalFallback = isLocalRuntime;
 const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : "";
 
 let apiBase = localStorage.getItem(apiStorageKey) || defaultApiBase;
@@ -475,11 +480,6 @@ const editEmail = document.getElementById("editEmail");
 
 apiInput.value = apiBase;
 
-if (apiConfigSection && !isLocalRuntime) {
-  apiConfigSection.classList.remove("hidden");
-  apiConfigSection.setAttribute("aria-hidden", "false");
-}
-
 function initFirebaseAuth() {
   if (!window.firebase) {
     return;
@@ -536,15 +536,54 @@ function getUsers() {
 
 async function getRemoteUsers() {
   try {
-    const res = await fetch(`${apiBase}/api/clients`);
-    if (res.ok) {
-      return await res.json();
+    if (apiBase) {
+      const res = await fetch(`${apiBase}/api/clients`);
+      if (res.ok) {
+        return await res.json();
+      }
     }
   } catch (_error) {
-    // API indisponivel: nao usar fallback local para evitar falso positivo de duplicidade.
+    // Fallback para leitura direta do Realtime Database.
   }
 
-  return [];
+  try {
+    const snapshot = await fetch(`${firebaseConfig.databaseURL}/clients.json`);
+    if (!snapshot.ok) {
+      return [];
+    }
+    const raw = await snapshot.json();
+    if (!raw || typeof raw !== "object") {
+      return [];
+    }
+    return Object.values(raw);
+  } catch (_error) {
+    return [];
+  }
+}
+
+async function createClientInRealtime(name, email, authToken = null) {
+  const clientId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const payload = {
+    id: clientId,
+    name,
+    email: email.toLowerCase(),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const targetUrl = new URL(`${firebaseConfig.databaseURL}/clients/${clientId}.json`);
+  if (authToken) {
+    targetUrl.searchParams.set("auth", authToken);
+  }
+
+  const response = await fetch(targetUrl.toString(), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return response.ok;
 }
 
 function saveUsers(users) {
@@ -690,6 +729,9 @@ function updateSidebarProfile(email) {
 function setSession(email, isAdmin = false) {
   localStorage.setItem(sessionStorageKey, email);
   sessionClientCache = { email: null, id: null };
+  loadCartForSession();
+  renderSidebarFavorites();
+  renderCatalog();
   setAdminAccess(isAdmin);
   sessionUser.textContent = email;
   updateSidebarProfile(email);
@@ -700,6 +742,7 @@ function setSession(email, isAdmin = false) {
 }
 
 function clearSession() {
+  saveCart();
   localStorage.removeItem(sessionStorageKey);
   sessionClientCache = { email: null, id: null };
   stopClientsAutoRefresh();
@@ -708,6 +751,9 @@ function clearSession() {
   favoritePreviewMap = new Map();
   sidebarUserName.textContent = "-";
   sidebarUserEmail.textContent = "-";
+  cartItems = [];
+  renderSidebarFavorites();
+  renderCatalog();
   appView.classList.add("hidden");
   authView.classList.remove("hidden");
   showMessage("");
@@ -749,7 +795,7 @@ function syncStats(clientCount) {
 
 async function request(path, options = {}) {
   if (!apiBase) {
-    throw new Error("Configure a URL da API para salvar no banco de dados.");
+    throw new Error("Servico indisponivel no momento.");
   }
 
   const response = await fetch(`${apiBase}${path}`, {
@@ -1022,8 +1068,11 @@ loginForm.addEventListener("submit", async (event) => {
     try {
       await firebaseAuth.signInWithEmailAndPassword(email, password);
     } catch (_error) {
-      showMessage("Credenciais invalidas. Verifique seus dados.", true);
-      return;
+      const existingUser = findUserByEmail(email);
+      if (!existingUser || existingUser.password !== password) {
+        showMessage("Credenciais invalidas. Verifique seus dados.", true);
+        return;
+      }
     }
   } else {
     const existingUser = findUserByEmail(email);
@@ -1072,53 +1121,51 @@ registerForm.addEventListener("submit", async (event) => {
     saveUsers(cleanedUsers);
   }
 
-  let backendClientCreated = false;
-  // Sempre tenta criar no backend (Realtime Database)
-  try {
-    const res = await fetch(`${apiBase}/api/clients`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email }),
-    });
-    if (res.ok) backendClientCreated = true;
-  } catch (e) {
-    // ignora erro, segue fluxo local
-  }
-
-  if (!backendClientCreated && !canUseLocalFallback) {
-    showMessage("Nao foi possivel salvar no banco. Configure a URL da API e tente novamente.", true);
-    return;
-  }
-
+  let authToken = null;
   if (firebaseAuth) {
     try {
       const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
       if (userCredential.user) {
         await userCredential.user.updateProfile({ displayName: name });
+        authToken = await userCredential.user.getIdToken();
       }
-      registerForm.reset();
-      setSession(email, false);
-      showMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas local/Firebase).", !backendClientCreated);
-      appView.classList.remove("hidden");
-      clientsContainer.innerHTML = "<span>Carregando clientes...</span>";
-      await loadClients();
-      return;
     } catch (error) {
       const firebaseError = String(error?.code || "");
       if (firebaseError === "auth/email-already-in-use") {
-        // Se o backend nao tem duplicidade, segue com fallback local para nao bloquear o cadastro.
-        showMessage("Conta ja existente no auth remoto. Prosseguindo com cadastro local.");
+        showMessage("Ja existe uma conta com esse e-mail.", true);
+        return;
       }
       if (firebaseError === "auth/invalid-email") {
         showMessage("E-mail invalido.", true);
         return;
       }
-      // Fallback local para ambiente de desenvolvimento quando Firebase nao estiver disponivel
+      // Em caso de falha do auth remoto, segue para persistencia no banco e login fallback local.
     }
   }
 
-  if (!canUseLocalFallback) {
-    showMessage("Cadastro local desativado em producao. Configure a URL da API.", true);
+  let backendClientCreated = false;
+  // Tenta criar via backend quando API estiver configurada.
+  try {
+    if (apiBase) {
+      const res = await fetch(`${apiBase}/api/clients`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email }),
+      });
+      if (res.ok) {
+        backendClientCreated = true;
+      }
+    }
+  } catch (e) {
+    // ignora erro e tenta persistencia direta no Realtime Database.
+  }
+
+  if (!backendClientCreated) {
+    backendClientCreated = await createClientInRealtime(name, email, authToken);
+  }
+
+  if (!backendClientCreated) {
+    showMessage("Nao foi possivel criar conta agora. Tente novamente em instantes.", true);
     return;
   }
 
@@ -1127,10 +1174,12 @@ registerForm.addEventListener("submit", async (event) => {
   saveUsers(users);
   registerForm.reset();
   setSession(email, false);
-  showMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas local).", !backendClientCreated);
+  showMessage("Conta criada com sucesso!");
   appView.classList.remove("hidden");
   clientsContainer.innerHTML = "<span>Carregando clientes...</span>";
-  await loadClients();
+  if (apiBase) {
+    await loadClients();
+  }
 });
 
 showLoginButton.addEventListener("click", () => switchAuthMode("login"));
@@ -1401,7 +1450,7 @@ editClientForm.addEventListener("submit", async (event) => {
 });
 
 const existingSession = localStorage.getItem(sessionStorageKey);
-cartItems = JSON.parse(localStorage.getItem(cartStorageKey) || "[]");
+loadCartForSession();
 renderSidebarFavorites();
 const firebaseSessionEmail = firebaseAuth?.currentUser?.email || null;
 const sessionEmail = firebaseSessionEmail || existingSession;

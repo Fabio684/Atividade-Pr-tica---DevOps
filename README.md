@@ -255,6 +255,9 @@ Observacao: o backend usa `dotenv/config`, portanto carrega o `.env` local autom
 - Bust de cache no frontend para garantir carregamento da versao mais nova do `app.js`.
 - Migracao concluida do no legado `atletas` para `clients` no Firebase Realtime Database.
 - Ajuste de CORS para cenarios de desenvolvimento local.
+- Cadastro ajustado para persistir conta no Realtime Database mesmo sem URL da API configurada.
+- Fluxo de login com fallback local quando autenticacao remota estiver indisponivel.
+- Carrinho isolado por usuario para evitar compartilhamento indevido de itens entre contas.
 
 ## CI/CD
 
@@ -290,7 +293,8 @@ Importante:
 
 - publicar o conteudo de `frontend/`
 - manter o arquivo da logo em `frontend/public/img/`
-- configurar URL base da API no app apos publicar
+- para operacoes completas (listagem/edicao/remocao de clientes e favoritos), configurar URL base da API no app apos publicar
+- para cadastro inicial de conta, o frontend ja possui fallback direto ao Realtime Database
 
 ## Validacao funcional recomendada
 
@@ -319,6 +323,10 @@ Checklist rapido:
    - confirme se o e-mail ja existe em `GET /api/clients`
    - reinicie o frontend sem cache (`-c-1`)
    - recarregue a pagina com hard refresh
+- Mensagem "Nao foi possivel criar conta agora":
+   - confira conectividade com Firebase
+   - valide configuracao/estado do Firebase Auth e regras do Realtime Database
+   - tente novamente apos hard refresh para garantir versao mais recente do frontend
 - Erro de CORS em ambiente local:
    - confira `CORS_ORIGIN` no backend
    - use a mesma origem no navegador e no valor de CORS
@@ -328,5 +336,6 @@ Checklist rapido:
 ## Observacoes finais
 
 - O projeto suporta modo online (Firebase) e modo fallback (local/memoria).
+- O cadastro foi reforcado para priorizar persistencia no Realtime Database no frontend publicado.
 - O backend foi estruturado para facilitar evolucao para novos repositorios de dados.
 - O frontend foi organizado para manter UX completa em desktop e mobile.
