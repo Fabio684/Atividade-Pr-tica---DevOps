@@ -531,10 +531,10 @@ async function getRemoteUsers() {
       return await res.json();
     }
   } catch (_error) {
-    // fallback silencioso
+    // API indisponivel: nao usar fallback local para evitar falso positivo de duplicidade.
   }
 
-  return getUsers();
+  return [];
 }
 
 function saveUsers(users) {
@@ -1046,7 +1046,7 @@ registerForm.addEventListener("submit", async (event) => {
   const localExistingUser = findUserByEmail(email);
 
   const remoteUsers = await getRemoteUsers();
-  const emailAlreadyExistsRemote = remoteUsers.some((user) => user.email === email);
+  const emailAlreadyExistsRemote = remoteUsers.some((user) => (user.email || "").toLowerCase() === email);
   if (emailAlreadyExistsRemote) {
     showMessage("Ja existe uma conta com esse e-mail.", true);
     return;
@@ -1087,8 +1087,8 @@ registerForm.addEventListener("submit", async (event) => {
     } catch (error) {
       const firebaseError = String(error?.code || "");
       if (firebaseError === "auth/email-already-in-use") {
-        showMessage("Ja existe uma conta com esse e-mail.", true);
-        return;
+        // Se o backend nao tem duplicidade, segue com fallback local para nao bloquear o cadastro.
+        showMessage("Conta ja existente no auth remoto. Prosseguindo com cadastro local.");
       }
       if (firebaseError === "auth/invalid-email") {
         showMessage("E-mail invalido.", true);
