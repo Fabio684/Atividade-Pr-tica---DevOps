@@ -26,6 +26,13 @@ O projeto foi construido para cobrir um fluxo completo de produto:
 - CI/CD: GitHub Actions
 - Deploy alvo: Cloudflare Workers (backend), Cloudflare Pages/Netlify (frontend)
 
+## Criadores do Projeto
+
+- FÁBIO LEON BARBOSA TAVARES
+- JOAB RANIEL RODRIGUES
+- GUILHERME LOPES S. DA CRUZ
+- ISAIAS LEVY TAVARES DA SILVA
+
 ## Funcionalidades completas
 
 ### 1. Identidade visual e carregamento inicial
@@ -125,12 +132,20 @@ O projeto foi construido para cobrir um fluxo completo de produto:
   - `FirebaseRepository` (producao)
   - `InMemoryRepository` (fallback/dev)
 - Se `FIREBASE_DATABASE_URL` e `FIREBASE_SERVICE_ACCOUNT_JSON` estiverem definidos, usa Firebase automaticamente.
+- Migracao de legado aplicada:
+   - clientes consolidados no no `clients`
+   - no legado `atletas` removido com migracao segura para `clients`
+   - operacao atual do backend apenas no no `clients`
 
 ### Frontend
 
 - Sessao, carrinho e configuracoes locais em localStorage
 - Cadastro e leitura sincronizada com endpoints do backend
 - Uso de Firebase Auth para autenticacao quando disponivel
+- Ajustes de robustez aplicados:
+   - sincronizacao automatica de favoritos/compras com backend
+   - auto-refresh de clientes/favoritos na UI
+   - mitigacao de cache de assets com versionamento do `app.js`
 
 ## Endpoints da API
 
@@ -198,7 +213,16 @@ Backend:
 
 Frontend:
 
-- Servir pasta `frontend/` com servidor estatico (exemplo: http-server) e apontar URL da API no app.
+- Servir pasta `frontend/` com servidor estatico e apontar URL da API no app.
+- Comando recomendado (sem cache para desenvolvimento):
+
+   `npx --yes http-server frontend -p 8080 -c-1`
+
+- Acesse preferencialmente:
+
+   `http://localhost:8080`
+
+   (evite misturar `localhost` e `127.0.0.1` na mesma sessao para reduzir efeitos de cache/origem)
 
 ## Configuracao Firebase
 
@@ -216,7 +240,21 @@ Variaveis adicionais:
 - `PORT`
 - `CORS_ORIGIN`
 
+Configuracao recomendada de CORS para desenvolvimento:
+
+- `CORS_ORIGIN=http://localhost:8080`
+
+Observacao: o backend aceita `http://localhost:8080` e `http://127.0.0.1:8080` na resolucao de CORS.
+
 Observacao: o backend usa `dotenv/config`, portanto carrega o `.env` local automaticamente ao iniciar.
+
+## Atualizacoes recentes
+
+- Correcao de sincronizacao realtime entre frontend e backend para favoritos e compras.
+- Correcao de fluxo de cadastro para reduzir falso positivo de e-mail duplicado em ambiente local.
+- Bust de cache no frontend para garantir carregamento da versao mais nova do `app.js`.
+- Migracao concluida do no legado `atletas` para `clients` no Firebase Realtime Database.
+- Ajuste de CORS para cenarios de desenvolvimento local.
 
 ## CI/CD
 
@@ -271,9 +309,21 @@ Checklist rapido:
 
 ## Entregaveis
 
-- Repositorio GitHub: PREENCHER
-- URL do frontend publicado: PREENCHER
-- URL da API publicada: PREENCHER
+- Repositorio GitHub: https://github.com/Fabio684/Atividade-Pr-tica---DevOps.git
+- URL do frontend publicado: Nao informado
+- URL da API publicada: Nao informado
+
+## Troubleshooting rapido
+
+- Mensagem "Ja existe uma conta com esse e-mail":
+   - confirme se o e-mail ja existe em `GET /api/clients`
+   - reinicie o frontend sem cache (`-c-1`)
+   - recarregue a pagina com hard refresh
+- Erro de CORS em ambiente local:
+   - confira `CORS_ORIGIN` no backend
+   - use a mesma origem no navegador e no valor de CORS
+- Porta ocupada (EADDRINUSE):
+   - finalize processo na porta 3000/8080 antes de subir novamente os servicos
 
 ## Observacoes finais
 
