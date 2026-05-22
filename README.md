@@ -30,7 +30,7 @@ O projeto foi construido para cobrir um fluxo completo de produto:
 
 - 37023164 FÁBIO LEON BARBOSA TAVARES (documentacao e auxiliar)
 - 37023114 JOAB RANIEL RODRIGUES (Docker)
-- 37022679 GUILHERME LOPES S. DA CRUZ (Back End)
+- 37022679 GUILHERME LOPES S. DA CRUZ (Back End e revisao)
 - 37023010 ISAIAS LEVY TAVARES DA SILVA (Frond End)
 
 ## Funcionalidades completas
