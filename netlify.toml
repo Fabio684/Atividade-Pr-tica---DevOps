@@ -32,5 +32,6 @@
   # Necessário para SPA funcionar corretamente
   to = "/index.html"
 
+
   # Mantém resposta válida sem erro 404
   status = 200
