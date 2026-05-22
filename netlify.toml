@@ -1,8 +1,6 @@
-
 # CONFIGURAÇÃO DE BUILD - NETLIFY
 
 [build]
-
   # Define a pasta base do frontend
   # Todos os comandos serão executados dentro dela
   base = "frontend"
@@ -17,7 +15,6 @@
 
 
 # REDIRECIONAMENTO DE ROTAS (SPA)
-
 
 [[redirects]]
 
