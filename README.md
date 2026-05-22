@@ -28,10 +28,10 @@ O projeto foi construido para cobrir um fluxo completo de produto:
 
 ## Criadores do Projeto
 
-- FÁBIO LEON BARBOSA TAVARES
-- JOAB RANIEL RODRIGUES
-- GUILHERME LOPES S. DA CRUZ
-- ISAIAS LEVY TAVARES DA SILVA
+- 37023164 FÁBIO LEON BARBOSA TAVARES (documentacao e auxiliar)
+- 37023114 JOAB RANIEL RODRIGUES (Docker)
+- 37022679 GUILHERME LOPES S. DA CRUZ (Back End)
+- 37023010 ISAIAS LEVY TAVARES DA SILVA (Frond End)
 
 ## Funcionalidades completas
 
