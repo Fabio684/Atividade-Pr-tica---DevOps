@@ -17,7 +17,7 @@ O projeto foi construido para cobrir um fluxo completo de produto:
 
 ## Stack tecnica
 
-- Frontend: HTML, CSS, JavaScript (vanilla)
+- Frontend: React, TypeScript, SASS
 - Backend: Node.js, TypeScript, Hono
 - Banco principal: Firebase Realtime Database
 - Auth: Firebase Auth (com fallback local)
@@ -213,14 +213,24 @@ Backend:
 
 Frontend:
 
-- Servir pasta `frontend/` com servidor estatico e apontar URL da API no app.
-- Comando recomendado (sem cache para desenvolvimento):
+- Entre em `frontend/`.
+- Instale dependencias:
 
-   `npx --yes http-server frontend -p 8080 -c-1`
+   `npm install`
+
+- Rode em desenvolvimento:
+
+   `npm run dev`
+
+- Para gerar a versao de producao:
+
+   `npm run build`
+
+- O Vite sobe em uma porta local exibida no terminal; ajuste a URL da API no app se necessario.
 
 - Acesse preferencialmente:
 
-   `http://localhost:8080`
+   `http://localhost:5173`
 
    (evite misturar `localhost` e `127.0.0.1` na mesma sessao para reduzir efeitos de cache/origem)
 
