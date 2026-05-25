@@ -4,9 +4,6 @@ interface SidebarProps {
   favoriteCount: number;
   clientCount: number;
   isAdmin: boolean;
-  apiBase: string;
-  onApiBaseChange: (value: string) => void;
-  onSaveApiBase: () => void;
   onOpenCart: () => void;
   onOpenAdmin: () => void;
   onShowCatalog: () => void;
@@ -19,9 +16,6 @@ export function Sidebar({
   favoriteCount,
   clientCount,
   isAdmin,
-  apiBase,
-  onApiBaseChange,
-  onSaveApiBase,
   onOpenCart,
   onOpenAdmin,
   onShowCatalog,
@@ -55,18 +49,9 @@ export function Sidebar({
       </section>
 
       <section className="sidebar-actions">
-        <button type="button" className="ghost-btn" onClick={onShowCatalog}>Catálogo</button>
-        <button type="button" className="ghost-btn" onClick={onOpenCart}>Carrinho</button>
-        {isAdmin ? <button type="button" className="ghost-btn" onClick={onOpenAdmin}>Admin</button> : null}
-      </section>
-
-      <section className="stack-section">
-        <h2>Configuração da API</h2>
-        <label>
-          URL Base
-          <input value={apiBase} onChange={(event) => onApiBaseChange(event.target.value)} type="text" placeholder="http://localhost:3000" />
-        </label>
-        <button type="button" onClick={onSaveApiBase}>Salvar URL</button>
+        <button type="button" className="ghost-btn" onClick={onShowCatalog}>Ver catálogo</button>
+        <button type="button" className="ghost-btn" onClick={onOpenCart}>Abrir carrinho</button>
+        {isAdmin ? <button type="button" className="ghost-btn" onClick={onOpenAdmin}>Painel admin</button> : null}
       </section>
 
       <button type="button" className="ghost-btn logout-btn" onClick={onLogout}>Sair</button>

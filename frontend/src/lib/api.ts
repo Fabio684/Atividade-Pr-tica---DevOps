@@ -1,13 +1,38 @@
 import type { Client, Product, Purchase } from "../types";
 
 export async function requestJson<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${baseUrl}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
+  const controller = options.signal ? null : new AbortController();
+  const timeoutId = controller ? window.setTimeout(() => controller.abort(), 12000) : null;
+  let response: Response;
+
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      ...options,
+      signal: options.signal || controller?.signal,
+    });
+  } catch (error) {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("A API demorou para responder. Tente novamente em instantes.");
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error("Não foi possível conectar à API. Verifique sua conexão e a disponibilidade do backend.");
+    }
+
+    throw new Error("Falha inesperada ao conectar com a API.");
+  }
+
+  if (timeoutId) {
+    window.clearTimeout(timeoutId);
+  }
 
   const contentType = response.headers.get("content-type") || "";
   const isJson = contentType.includes("application/json");

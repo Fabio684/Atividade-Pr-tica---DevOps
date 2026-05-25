@@ -360,11 +360,6 @@ export default function App() {
     writeString(storageKeys.adminSession, "false");
   }
 
-  function handleSaveApiBase() {
-    setApiBase(normalizeApiBase(apiBase || defaultApiBase));
-    setMessage("URL da API atualizada.");
-  }
-
   async function handleToggleFavorite(product: Product) {
     const alreadyInCart = cartItems.some((item) => item.id === product.id);
 
@@ -592,9 +587,6 @@ export default function App() {
         favoriteCount={favoriteCount}
         clientCount={clients.length}
         isAdmin={isAdminSession}
-        apiBase={apiBase}
-        onApiBaseChange={setApiBase}
-        onSaveApiBase={handleSaveApiBase}
         onOpenCart={() => setActiveView("cart")}
         onOpenAdmin={() => setActiveView("admin")}
         onShowCatalog={() => setActiveView("catalog")}

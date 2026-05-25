@@ -145,7 +145,7 @@ O projeto foi construido para cobrir um fluxo completo de produto:
 - Ajustes de robustez aplicados:
    - sincronizacao automatica de favoritos/compras com backend
    - auto-refresh de clientes/favoritos na UI
-   - mitigacao de cache de assets com versionamento do `app.js`
+   - mitigacao de cache de assets com versionamento do bundle gerado pelo Vite
 
 ## Endpoints da API
 
@@ -262,7 +262,7 @@ Observacao: o backend usa `dotenv/config`, portanto carrega o `.env` local autom
 
 - Correcao de sincronizacao realtime entre frontend e backend para favoritos e compras.
 - Correcao de fluxo de cadastro para reduzir falso positivo de e-mail duplicado em ambiente local.
-- Bust de cache no frontend para garantir carregamento da versao mais nova do `app.js`.
+- Bust de cache no frontend para garantir carregamento da versao mais nova do bundle Vite.
 - Migracao concluida do no legado `atletas` para `clients` no Firebase Realtime Database.
 - Ajuste de CORS para cenarios de desenvolvimento local.
 - Cadastro ajustado para persistir conta no Realtime Database mesmo sem URL da API configurada.
