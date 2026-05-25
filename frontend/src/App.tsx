@@ -23,6 +23,10 @@ const envApiBase = normalizeApiBase(import.meta.env.VITE_API_BASE_URL || "");
 const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : envApiBase;
 const firebaseAuth = initFirebaseAuth();
 
+function resolveCartStorageKey(email: string | null): string {
+  return `${storageKeys.cart}_${(email || "guest").toLowerCase()}`;
+}
+
 function isFirebaseConfigurationError(error: unknown): boolean {
   if (typeof error !== "object" || !error) {
     return false;
@@ -53,7 +57,7 @@ export default function App() {
   const [isAdminSession, setIsAdminSession] = useState(false);
   const [apiBase, setApiBase] = useState(() => normalizeApiBase(readString(storageKeys.apiBase, defaultApiBase)));
   const [users, setUsers] = useState<LocalUser[]>(() => getLocalUsers());
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => readJson<CartItem[]>(storageKeys.cart, []));
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [overrides, setOverrides] = useState<Record<string, ProductOverride>>(() => readJson<Record<string, ProductOverride>>(storageKeys.overrides, {}));
   const [products, setProducts] = useState<Product[]>([]);
   const [clients, setClients] = useState<ClientView[]>([]);
@@ -71,12 +75,18 @@ export default function App() {
   }, [apiBase]);
 
   useEffect(() => {
-    writeJson(storageKeys.cart, cartItems);
-  }, [cartItems]);
+    const key = resolveCartStorageKey(sessionEmail);
+    writeJson(key, cartItems);
+  }, [cartItems, sessionEmail]);
 
   useEffect(() => {
     writeJson(storageKeys.overrides, overrides);
   }, [overrides]);
+
+  useEffect(() => {
+    const key = resolveCartStorageKey(sessionEmail);
+    setCartItems(readJson<CartItem[]>(key, []));
+  }, [sessionEmail]);
 
   useEffect(() => {
     const unsubscribe = watchAuthState(firebaseAuth, (email) => {
@@ -599,7 +609,6 @@ export default function App() {
           <div className="topbar-actions">
             <span className="user-chip">{sessionEmail}</span>
             {isAdminSession ? <button type="button" className="ghost-btn" onClick={() => setActiveView("admin")}>⚙</button> : null}
-            <button type="button" className="ghost-btn" onClick={() => void handleLogout()}>Sair</button>
           </div>
         </header>
 
