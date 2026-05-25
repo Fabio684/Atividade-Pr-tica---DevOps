@@ -643,13 +643,15 @@ export default function App() {
             />
           ) : null}
 
-          <ClientsSection
-            clients={clients}
-            onDeleteClient={handleDeleteClient}
-            onEditClient={handleEditClient}
-            onAddFavorite={handleAddFavorite}
-            onRemoveFavorite={handleRemoveClientFavorite}
-          />
+          {activeView === "admin" && isAdminSession ? (
+            <ClientsSection
+              clients={clients}
+              onDeleteClient={handleDeleteClient}
+              onEditClient={handleEditClient}
+              onAddFavorite={handleAddFavorite}
+              onRemoveFavorite={handleRemoveClientFavorite}
+            />
+          ) : null}
 
           <section className="panel-surface credits-panel">
             <h2>Criadores do Projeto</h2>
