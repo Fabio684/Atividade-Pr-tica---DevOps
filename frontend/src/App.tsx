@@ -23,6 +23,16 @@ const envApiBase = normalizeApiBase(import.meta.env.VITE_API_BASE_URL || "");
 const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : envApiBase;
 const firebaseAuth = initFirebaseAuth();
 
+function isFirebaseConfigurationError(error: unknown): boolean {
+  if (typeof error !== "object" || !error) {
+    return false;
+  }
+
+  const maybeCode = "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const maybeMessage = error instanceof Error ? error.message : "";
+  return maybeCode === "auth/configuration-not-found" || maybeMessage.includes("auth/configuration-not-found");
+}
+
 async function loadClientViews(apiBase: string): Promise<ClientView[]> {
   const backendClients = await listClients(apiBase);
   return Promise.all(backendClients.map(async (client) => {
@@ -124,7 +134,7 @@ export default function App() {
       }
 
       if (!apiBase && !isLocalRuntime) {
-        setClientsError("Configure a URL da API (VITE_API_BASE_URL no deploy ou campo URL Base na sidebar).");
+        setClientsError("");
         setClients([]);
         return;
       }
@@ -146,7 +156,7 @@ export default function App() {
   }, [apiBase, sessionEmail]);
 
   useEffect(() => {
-    if (!sessionEmail) {
+    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
       return;
     }
 
@@ -171,7 +181,7 @@ export default function App() {
   const cartIds = useMemo(() => cartItems.map((item) => item.id), [cartItems]);
 
   async function refreshClients() {
-    if (!sessionEmail) {
+    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
       return;
     }
 
@@ -186,7 +196,7 @@ export default function App() {
   }
 
   async function resolveSessionClientId(): Promise<string | null> {
-    if (!sessionEmail) {
+    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
       return null;
     }
 
@@ -233,6 +243,8 @@ export default function App() {
     setMessage("");
 
     try {
+      let firebaseFallbackUsed = false;
+
       if (isAdminCredential(email, password)) {
         setSession(email, true);
         setMessage("Sessão iniciada com sucesso.");
@@ -240,16 +252,30 @@ export default function App() {
       }
 
       if (firebaseAuth) {
-        await firebaseLogin(firebaseAuth, email, password);
-      } else {
+        try {
+          await firebaseLogin(firebaseAuth, email, password);
+        } catch (error) {
+          if (!isFirebaseConfigurationError(error)) {
+            throw error;
+          }
+
+          firebaseFallbackUsed = true;
+        }
+      }
+
+      if (!firebaseAuth || firebaseFallbackUsed) {
         const existingUser = findLocalUserByEmail(email);
         if (!existingUser || existingUser.password !== password) {
+          if (firebaseFallbackUsed) {
+            throw new Error("Firebase Auth não está configurado e não há usuário local com essas credenciais.");
+          }
+
           throw new Error("Credenciais inválidas. Verifique seus dados.");
         }
       }
 
       setSession(email, false);
-      setMessage("Sessão iniciada com sucesso.");
+      setMessage(firebaseFallbackUsed ? "Sessão iniciada no modo local (Firebase indisponível)." : "Sessão iniciada com sucesso.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Credenciais inválidas. Verifique seus dados.");
     } finally {
@@ -271,6 +297,8 @@ export default function App() {
     setMessage("");
 
     try {
+      let firebaseFallbackUsed = false;
+
       const existingClients = await listClients(apiBase).catch(() => [] as ClientView[]);
       if (existingClients.some((client) => client.email.toLowerCase() === email)) {
         throw new Error("Já existe uma conta com esse e-mail.");
@@ -285,10 +313,18 @@ export default function App() {
       }
 
       if (firebaseAuth) {
-        await firebaseRegister(firebaseAuth, email, password, name);
-        setSession(email, false);
-        setMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas Firebase/local).");
-        return;
+        try {
+          await firebaseRegister(firebaseAuth, email, password, name);
+          setSession(email, false);
+          setMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas Firebase/local).");
+          return;
+        } catch (error) {
+          if (!isFirebaseConfigurationError(error)) {
+            throw error;
+          }
+
+          firebaseFallbackUsed = true;
+        }
       }
 
       if (!backendClientCreated && !isLocalRuntime) {
@@ -300,7 +336,11 @@ export default function App() {
       saveLocalUsers(currentUsers);
       setUsers(currentUsers);
       setSession(email, false);
-      setMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas local).");
+      if (firebaseFallbackUsed) {
+        setMessage(backendClientCreated ? "Conta criada no modo local (Firebase indisponível)." : "Conta criada apenas localmente (Firebase e API indisponíveis).");
+      } else {
+        setMessage(backendClientCreated ? "Conta criada com sucesso!" : "Conta criada (apenas local).");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Não foi possível criar a conta.");
     } finally {
