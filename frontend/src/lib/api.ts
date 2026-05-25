@@ -1,0 +1,86 @@
+import type { Client, Product, Purchase } from "../types";
+
+export async function requestJson<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message || `Erro ao chamar ${path}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+export function buildSessionClientName(email: string): string {
+  const prefix = email.split("@")[0] || "usuario";
+  return prefix
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Usuario";
+}
+
+export function normalizeApiBase(value: string): string {
+  return value.trim().replace(/\/$/, "");
+}
+
+export async function listClients(baseUrl: string): Promise<Client[]> {
+  return requestJson<Client[]>(baseUrl, "/api/clients");
+}
+
+export async function createClient(baseUrl: string, input: { name: string; email: string }): Promise<Client> {
+  return requestJson<Client>(baseUrl, "/api/clients", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateClient(baseUrl: string, id: string, input: { name: string; email: string }): Promise<Client> {
+  return requestJson<Client>(baseUrl, `/api/clients/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteClient(baseUrl: string, id: string): Promise<void> {
+  await requestJson<void>(baseUrl, `/api/clients/${id}`, { method: "DELETE" });
+}
+
+export async function loadFavorites(baseUrl: string, clientId: string): Promise<Product[]> {
+  return requestJson<Product[]>(baseUrl, `/api/clients/${clientId}/favorites`);
+}
+
+export async function addFavorite(baseUrl: string, clientId: string, productId: number): Promise<void> {
+  await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites`, {
+    method: "POST",
+    body: JSON.stringify({ productId }),
+  });
+}
+
+export async function removeFavorite(baseUrl: string, clientId: string, productId: number): Promise<void> {
+  await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites/${productId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function registerPurchase(baseUrl: string, clientId: string, input: {
+  productId: number;
+  productTitle: string;
+  productPrice: number;
+  productImage: string;
+}): Promise<Purchase> {
+  return requestJson<Purchase>(baseUrl, `/api/clients/${clientId}/purchases`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}

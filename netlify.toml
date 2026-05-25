@@ -1,7 +1,40 @@
+# CONFIGURAÇÃO DE BUILD - NETLIFY
+
 [build]
-  publish = "frontend"
+  # Define a pasta base do frontend
+  # Todos os comandos serão executados dentro dela
+  base = "frontend"
+
+  # Comando responsável por gerar a build
+  # Normalmente cria a pasta dist/
+  command = "npm run build"
+
+  # Pasta publicada após o build
+  # Contém os arquivos finais da aplicação
+  publish = "dist"
+
+
+# REDIRECIONAMENTO DE ROTAS (SPA)
 
 [[redirects]]
+
+  # Captura qualquer rota da aplicação
+  # Exemplos:
+  # /home
+  # /login
+  # /dashboard
   from = "/*"
+
+  # Redireciona tudo para index.html
+  # Necessário para SPA funcionar corretamente
   to = "/index.html"
+
+
+  # Mantém resposta válida sem erro 404
   status = 200
+
+
+
+
+#fabio nao sabe escreve o mds
+#imundo maluco de pedra saco de argamassa pretificada
