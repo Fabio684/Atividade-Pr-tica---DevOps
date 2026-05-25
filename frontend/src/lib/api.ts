@@ -1,4 +1,35 @@
 import type { Client, Product, Purchase } from "../types";
+import {
+  addFavoriteInFirebase,
+  createClientInFirebase,
+  deleteClientInFirebase,
+  listClientsFromFirebase,
+  loadFavoritesFromFirebase,
+  registerPurchaseInFirebase,
+  removeFavoriteInFirebase,
+  updateClientInFirebase,
+} from "./firebaseData";
+
+function shouldUseFirebaseFallback(baseUrl: string, error: unknown): boolean {
+  if (!baseUrl) {
+    return true;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+  return (
+    message.includes("não foi possível conectar à api")
+    || message.includes("nao foi possivel conectar")
+    || message.includes("a api demorou para responder")
+    || message.includes("failed to fetch")
+    || message.includes("esperava json")
+    || message.includes("conteúdo inválido")
+    || message.includes("conteudo invalido")
+  );
+}
 
 export async function requestJson<T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> {
   const controller = options.signal ? null : new AbortController();
@@ -75,42 +106,101 @@ export function normalizeApiBase(value: string): string {
 }
 
 export async function listClients(baseUrl: string): Promise<Client[]> {
-  return requestJson<Client[]>(baseUrl, "/api/clients");
+  try {
+    return await requestJson<Client[]>(baseUrl, "/api/clients");
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      return listClientsFromFirebase();
+    }
+
+    throw error;
+  }
 }
 
 export async function createClient(baseUrl: string, input: { name: string; email: string }): Promise<Client> {
-  return requestJson<Client>(baseUrl, "/api/clients", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  try {
+    return await requestJson<Client>(baseUrl, "/api/clients", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      return createClientInFirebase(input);
+    }
+
+    throw error;
+  }
 }
 
 export async function updateClient(baseUrl: string, id: string, input: { name: string; email: string }): Promise<Client> {
-  return requestJson<Client>(baseUrl, `/api/clients/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(input),
-  });
+  try {
+    return await requestJson<Client>(baseUrl, `/api/clients/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      return updateClientInFirebase(id, input);
+    }
+
+    throw error;
+  }
 }
 
 export async function deleteClient(baseUrl: string, id: string): Promise<void> {
-  await requestJson<void>(baseUrl, `/api/clients/${id}`, { method: "DELETE" });
+  try {
+    await requestJson<void>(baseUrl, `/api/clients/${id}`, { method: "DELETE" });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      await deleteClientInFirebase(id);
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function loadFavorites(baseUrl: string, clientId: string): Promise<Product[]> {
-  return requestJson<Product[]>(baseUrl, `/api/clients/${clientId}/favorites`);
+  try {
+    return await requestJson<Product[]>(baseUrl, `/api/clients/${clientId}/favorites`);
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      return loadFavoritesFromFirebase(clientId);
+    }
+
+    throw error;
+  }
 }
 
 export async function addFavorite(baseUrl: string, clientId: string, productId: number): Promise<void> {
-  await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites`, {
-    method: "POST",
-    body: JSON.stringify({ productId }),
-  });
+  try {
+    await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites`, {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      await addFavoriteInFirebase(clientId, productId);
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function removeFavorite(baseUrl: string, clientId: string, productId: number): Promise<void> {
-  await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites/${productId}`, {
-    method: "DELETE",
-  });
+  try {
+    await requestJson<void>(baseUrl, `/api/clients/${clientId}/favorites/${productId}`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      await removeFavoriteInFirebase(clientId, productId);
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function registerPurchase(baseUrl: string, clientId: string, input: {
@@ -119,8 +209,19 @@ export async function registerPurchase(baseUrl: string, clientId: string, input:
   productPrice: number;
   productImage: string;
 }): Promise<Purchase> {
-  return requestJson<Purchase>(baseUrl, `/api/clients/${clientId}/purchases`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  try {
+    return await requestJson<Purchase>(baseUrl, `/api/clients/${clientId}/purchases`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  } catch (error) {
+    if (shouldUseFirebaseFallback(baseUrl, error)) {
+      return registerPurchaseInFirebase({
+        clientId,
+        ...input,
+      });
+    }
+
+    throw error;
+  }
 }

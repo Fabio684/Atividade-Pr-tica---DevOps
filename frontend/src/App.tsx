@@ -133,12 +133,6 @@ export default function App() {
         return;
       }
 
-      if (!apiBase && !isLocalRuntime) {
-        setClientsError("");
-        setClients([]);
-        return;
-      }
-
       setClientsLoading(true);
       setClientsError("");
 
@@ -156,7 +150,7 @@ export default function App() {
   }, [apiBase, sessionEmail]);
 
   useEffect(() => {
-    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
+    if (!sessionEmail) {
       return;
     }
 
@@ -181,7 +175,7 @@ export default function App() {
   const cartIds = useMemo(() => cartItems.map((item) => item.id), [cartItems]);
 
   async function refreshClients() {
-    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
+    if (!sessionEmail) {
       return;
     }
 
@@ -196,7 +190,7 @@ export default function App() {
   }
 
   async function resolveSessionClientId(): Promise<string | null> {
-    if (!sessionEmail || (!apiBase && !isLocalRuntime)) {
+    if (!sessionEmail) {
       return null;
     }
 

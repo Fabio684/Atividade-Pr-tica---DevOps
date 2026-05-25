@@ -2,7 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile, type Auth } from "firebase/auth";
 import type { LocalUser } from "../types";
 
-const firebaseConfig = {
+export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDs7ChLl5aNbZBxHuF0z5YTEAWJ_Tn-cvw",
   authDomain: "devops-57d46.firebaseapp.com",
   databaseURL: "https://devops-57d46-default-rtdb.firebaseio.com",
@@ -16,7 +16,7 @@ const usersKey = "favorites_ui_users";
 
 export function initFirebaseAuth(): Auth | null {
   try {
-    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
     return getAuth(app);
   } catch {
     return null;
