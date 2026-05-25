@@ -325,8 +325,41 @@ Checklist rapido:
 ## Entregaveis
 
 - Repositorio GitHub: https://github.com/Fabio684/Atividade-Pr-tica---DevOps.git
-- URL do frontend publicado: Nao informado
-- URL da API publicada: Nao informado
+- URL do frontend publicado: https://joyful-madeleine-cbb9bc.netlify.app
+- URL da API publicada: https://favorites-api.devops-api.workers.dev
+
+## Status de producao (25/05/2026)
+
+- Frontend publicado em Netlify com deploy ativo:
+   - https://joyful-madeleine-cbb9bc.netlify.app
+- Backend publicado em Cloudflare Workers com healthcheck OK:
+   - GET https://favorites-api.devops-api.workers.dev/health -> {"status":"ok"}
+- Variavel de ambiente no Netlify configurada:
+   - `VITE_API_BASE_URL=https://favorites-api.devops-api.workers.dev`
+- Publicacao do frontend concluida via CLI com upload direto do dist:
+   - `netlify deploy --prod --no-build --dir=C:\temp\distdeploy`
+
+## Firebase x Netlify (verificacao)
+
+- Firebase Authentication:
+   - provedor `E-mail/senha` esta ativado
+- Firebase Auth > Configuracoes > Dominios autorizados:
+   - dominios presentes: `localhost`, `devops-57d46.firebaseapp.com`, `devops-57d46.web.app`, `joyful-madeleine-cbb9bc.netlify.app`
+   - status: dominio do deploy Netlify adicionado com sucesso como dominio `Custom`
+- Impacto:
+   - login/cadastro no frontend publicado fica alinhado com a configuracao de auth para redirecionamentos suportados
+   - reduz risco de bloqueio de fluxo de autenticacao em producao
+
+## Validacao do tutorial (Notion)
+
+Comparativo do tutorial com o que foi executado:
+
+- `git status --short --branch`: executado
+- `git status --ignored --short`: executado e `.env` confirmado como ignorado (`backend/.env`)
+- `git fetch origin`: executado
+- `npm install` e `npm run build` no frontend: executados com sucesso
+
+Conclusao: o procedimento do tutorial foi implementado e validado no repositório atual.
 
 ## Troubleshooting rapido
 
