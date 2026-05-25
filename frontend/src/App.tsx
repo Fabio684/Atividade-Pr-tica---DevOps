@@ -19,7 +19,8 @@ const storageKeys = {
 };
 
 const isLocalRuntime = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : "";
+const envApiBase = normalizeApiBase(import.meta.env.VITE_API_BASE_URL || "");
+const defaultApiBase = isLocalRuntime ? "http://localhost:3000" : envApiBase;
 const firebaseAuth = initFirebaseAuth();
 
 async function loadClientViews(apiBase: string): Promise<ClientView[]> {
@@ -118,6 +119,12 @@ export default function App() {
   useEffect(() => {
     const loadData = async () => {
       if (!sessionEmail) {
+        setClients([]);
+        return;
+      }
+
+      if (!apiBase && !isLocalRuntime) {
+        setClientsError("Configure a URL da API (VITE_API_BASE_URL no deploy ou campo URL Base na sidebar).");
         setClients([]);
         return;
       }

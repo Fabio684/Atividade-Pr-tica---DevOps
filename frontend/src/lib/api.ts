@@ -9,13 +9,28 @@ export async function requestJson<T>(baseUrl: string, path: string, options: Req
     ...options,
   });
 
+  const contentType = response.headers.get("content-type") || "";
+  const isJson = contentType.includes("application/json");
+
   if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.message || `Erro ao chamar ${path}`);
+    if (isJson) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.message || `Erro ao chamar ${path}`);
+    }
+
+    const payloadText = await response.text().catch(() => "");
+    const preview = payloadText.trim().slice(0, 120);
+    throw new Error(`A API retornou conteúdo inválido em ${path}. Verifique a URL base da API. (${preview || "sem payload"})`);
   }
 
   if (response.status === 204) {
     return undefined as T;
+  }
+
+  if (!isJson) {
+    const payloadText = await response.text().catch(() => "");
+    const preview = payloadText.trim().slice(0, 120);
+    throw new Error(`Esperava JSON em ${path}, mas recebi outro formato. Verifique a URL base da API. (${preview || "sem payload"})`);
   }
 
   return (await response.json()) as T;

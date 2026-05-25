@@ -303,6 +303,7 @@ Importante:
 
 - publicar o conteudo de `frontend/`
 - manter o arquivo da logo em `frontend/public/img/`
+- configurar a variavel de ambiente `VITE_API_BASE_URL` com a URL publica do backend (exemplo: `https://seu-backend.exemplo.com`)
 - para operacoes completas (listagem/edicao/remocao de clientes e favoritos), configurar URL base da API no app apos publicar
 - para cadastro inicial de conta, o frontend ja possui fallback direto ao Realtime Database
 
