@@ -104,6 +104,15 @@ export function createApp(repository: ClientRepository) {
     }),
   );
 
+  app.get("/", (c) => c.json({
+    status: "ok",
+    service: "favorites-backend",
+    endpoints: {
+      health: "/health",
+      clients: "/api/clients",
+    },
+  }));
+
   app.get("/health", (c) => c.json({ status: "ok" }));
 
   app.post("/api/clients", async (c) => {
