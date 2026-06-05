@@ -92,8 +92,8 @@ export function CartSection({ items, onBack, onRemove, onBuy }: CartSectionProps
     <section className="panel-surface">
       <div className="section-head">
         <div>
-          <h2>Seu carrinho</h2>
-          <p className="muted">Revise os itens salvos localmente antes de pagar.</p>
+          <h2>Meus favoritos</h2>
+          <p className="muted">Revise os itens salvos localmente antes de comprar.</p>
         </div>
         <button type="button" className="ghost-btn" onClick={onBack}>Voltar</button>
       </div>
@@ -113,7 +113,7 @@ export function CartSection({ items, onBack, onRemove, onBuy }: CartSectionProps
               <button type="button" onClick={() => onBuy(item)}>Comprar</button>
             </div>
           </li>
-        )) : <li className="muted">Nenhum produto no carrinho.</li>}
+        )) : <li className="muted">Nenhum produto nos favoritos.</li>}
       </ul>
     </section>
   );

@@ -50,7 +50,7 @@ export function Sidebar({
 
       <section className="sidebar-actions">
         <button type="button" className="ghost-btn" onClick={onShowCatalog}>Ver catálogo</button>
-        <button type="button" className="ghost-btn" onClick={onOpenCart}>Abrir carrinho</button>
+        <button type="button" className="ghost-btn" onClick={onOpenCart}>Mostrar favoritos</button>
         {isAdmin ? <button type="button" className="ghost-btn" onClick={onOpenAdmin}>Painel admin</button> : null}
       </section>
 
